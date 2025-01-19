@@ -14,7 +14,7 @@ let temperatureData = [];
 // สร้าง WebSocket Server
 const wss = new WebSocketServer({ server });
 
-// Broadcast ข้อมูลไปยังทุก Client ที่เชื่อมต่อ
+// ฟังก์ชัน Broadcast ข้อมูลไปยังทุก Client ที่เชื่อมต่อ
 function broadcastData(data) {
   wss.clients.forEach(client => {
     if (client.readyState === 1) { // ตรวจสอบว่า WebSocket ยังเปิดอยู่
@@ -23,7 +23,7 @@ function broadcastData(data) {
   });
 }
 
-// เมื่อมีการเชื่อมต่อ WebSocket
+// จัดการการเชื่อมต่อ WebSocket
 wss.on('connection', ws => {
   console.log('New client connected');
   ws.send(JSON.stringify({ type: 'init', data: temperatureData })); // ส่งข้อมูลเริ่มต้นให้ Client
@@ -55,7 +55,7 @@ app.get('/upload', (req, res) => {
   }
 });
 
-// หน้าแรกแสดงตาราง HTML
+// Endpoint หน้าแรกแสดงตาราง HTML
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -117,6 +117,7 @@ app.get('/', (req, res) => {
         const tableBody = document.querySelector('#data-table tbody');
         const ws = new WebSocket('ws://' + location.host);
 
+        // รับข้อมูลจาก WebSocket
         ws.onmessage = (event) => {
           const message = JSON.parse(event.data);
 
@@ -132,18 +133,20 @@ app.get('/', (req, res) => {
           }
         };
 
+        // ฟังก์ชันเพิ่มข้อมูลในตาราง
         function addRow(index, data) {
           const row = document.createElement('tr');
-          row.innerHTML = `
+          row.innerHTML = 
             <td>${index}</td>
             <td>${data.celsius} °C</td>
             <td>${data.fahrenheit} °F</td>
             <td>${data.kelvin} K</td>
             <td>${data.timestamp}</td>
-          `;
+          ;
           tableBody.appendChild(row);
         }
 
+        // ฟังก์ชันล้างข้อมูล
         function clearData() {
           if (confirm('Are you sure you want to clear all data?')) {
             fetch('/clear', { method: 'POST' })
