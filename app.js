@@ -16,15 +16,71 @@ app.get('/upload', (req, res) => {
     console.log(`Received data: Celsius: ${celsius}, Fahrenheit: ${fahrenheit}, Kelvin: ${kelvin}`);
 
     // ตอบกลับ ESP8266
-    res.json({
-      status: 'success',
-      message: 'Data received successfully',
-      data: {
-        celsius,
-        fahrenheit,
-        kelvin
+    // res.json({
+    //   status: 'success',
+    //   message: 'Data received successfully',
+    //   data: {
+    //     celsius,
+    //     fahrenheit,
+    //     kelvin
+    //   }
+    // });
+    // ตอบกลับ ESP8266 เป็นตาราง HTML
+    res.send(`
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Data</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
       }
-    });
+      table {
+        width: 50%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        text-align: center;
+        padding: 8px;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Temperature Data Received</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Celsius</td>
+          <td>${celsius} °C</td>
+        </tr>
+        <tr>
+          <td>Fahrenheit</td>
+          <td>${fahrenheit} °F</td>
+        </tr>
+        <tr>
+          <td>Kelvin</td>
+          <td>${kelvin} K</td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+  </html>
+`);
+
   } else {
     res.status(400).json({
       status: 'error',
