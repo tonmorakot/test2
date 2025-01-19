@@ -136,13 +136,11 @@ app.get('/', (req, res) => {
         // ฟังก์ชันเพิ่มข้อมูลในตาราง
         function addRow(index, data) {
           const row = document.createElement('tr');
-          row.innerHTML = 
-            <td>${index}</td>
-            <td>${data.celsius} °C</td>
-            <td>${data.fahrenheit} °F</td>
-            <td>${data.kelvin} K</td>
-            <td>${data.timestamp}</td>
-          ;
+           '<td>' + index + '</td>' +
+            '<td>' + data.celsius + ' °C</td>' +
+          '<td>' + data.fahrenheit + ' °F</td>' +
+  '<td>' + data.kelvin + ' K</td>' +
+  '<td>' + data.timestamp + '</td>';
           tableBody.appendChild(row);
         }
 
