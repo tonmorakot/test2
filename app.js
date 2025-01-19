@@ -1,43 +1,20 @@
 const express = require('express');
-const { WebSocketServer } = require('ws'); // ใช้ WebSocket
-const http = require('http');
-
 const app = express();
 const port = 3000;
-
-// สร้าง HTTP Server
-const server = http.createServer(app);
 
 // ตัวแปรเก็บข้อมูลอุณหภูมิ
 let temperatureData = [];
 
-// สร้าง WebSocket Server
-const wss = new WebSocketServer({ server });
-
-// ฟังก์ชัน Broadcast ข้อมูลไปยังทุก Client ที่เชื่อมต่อ
-function broadcastData(data) {
-  wss.clients.forEach(client => {
-    if (client.readyState === 1) { // ตรวจสอบว่า WebSocket ยังเปิดอยู่
-      client.send(JSON.stringify(data));
-    }
-  });
-}
-
-// จัดการการเชื่อมต่อ WebSocket
-wss.on('connection', ws => {
-  console.log('New client connected');
-  ws.send(JSON.stringify({ type: 'init', data: temperatureData })); // ส่งข้อมูลเริ่มต้นให้ Client
-
-  ws.on('close', () => {
-    console.log('Client disconnected');
-  });
-});
+// Middleware: เพื่อรองรับ JSON และ URL-encoded data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Endpoint สำหรับรับข้อมูลจาก ESP8266
 app.get('/upload', (req, res) => {
   const { celsius, fahrenheit, kelvin } = req.query;
 
   if (celsius && fahrenheit && kelvin) {
+    // เพิ่มข้อมูลใน temperatureData
     const newData = {
       celsius,
       fahrenheit,
@@ -45,25 +22,26 @@ app.get('/upload', (req, res) => {
       timestamp: new Date().toLocaleString()
     };
     temperatureData.push(newData);
-
-    // Broadcast ข้อมูลใหม่ให้ทุก Client
-    broadcastData({ type: 'new', data: newData });
-
-    res.json({ status: 'success', message: 'Data received successfully' });
-  } else {
-    res.status(400).json({ status: 'error', message: 'Missing parameters' });
   }
-});
 
-// Endpoint หน้าแรกแสดงตาราง HTML
-app.get('/', (req, res) => {
+  // สร้างตาราง HTML
+  let tableRows = temperatureData.map((data, index) => `
+    <tr>
+      <td>${index + 1}</td>
+      <td>${data.celsius} °C</td>
+      <td>${data.fahrenheit} °F</td>
+      <td>${data.kelvin} K</td>
+      <td>${data.timestamp}</td>
+    </tr>
+  `).join('');
+
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Real-Time Temperature Data</title>
+      <title>Temperature Data</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -97,8 +75,8 @@ app.get('/', (req, res) => {
       </style>
     </head>
     <body>
-      <h1>Real-Time Temperature Data</h1>
-      <table id="data-table">
+      <h1>Temperature Data Received</h1>
+      <table>
         <thead>
           <tr>
             <th>#</th>
@@ -109,42 +87,11 @@ app.get('/', (req, res) => {
           </tr>
         </thead>
         <tbody>
-          <!-- ข้อมูลจะถูกเติมที่นี่แบบเรียลไทม์ -->
+          ${tableRows || '<tr><td colspan="5">No data available</td></tr>'}
         </tbody>
       </table>
       <button onclick="clearData()">Clear Data</button>
       <script>
-        const tableBody = document.querySelector('#data-table tbody');
-        const ws = new WebSocket('ws://' + location.host);
-
-        // รับข้อมูลจาก WebSocket
-        ws.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-
-          if (message.type === 'init') {
-            // ล้างตารางและเติมข้อมูลเริ่มต้น
-            tableBody.innerHTML = '';
-            message.data.forEach((item, index) => {
-              addRow(index + 1, item);
-            });
-          } else if (message.type === 'new') {
-            // เพิ่มข้อมูลใหม่ในตาราง
-            addRow(tableBody.rows.length + 1, message.data);
-          }
-        };
-
-        // ฟังก์ชันเพิ่มข้อมูลในตาราง
-        function addRow(index, data) {
-          const row = document.createElement('tr');
-           '<td>' + index + '</td>' +
-            '<td>' + data.celsius + ' °C</td>' +
-          '<td>' + data.fahrenheit + ' °F</td>' +
-  '<td>' + data.kelvin + ' K</td>' +
-  '<td>' + data.timestamp + '</td>';
-          tableBody.appendChild(row);
-        }
-
-        // ฟังก์ชันล้างข้อมูล
         function clearData() {
           if (confirm('Are you sure you want to clear all data?')) {
             fetch('/clear', { method: 'POST' })
@@ -152,7 +99,7 @@ app.get('/', (req, res) => {
               .then(data => {
                 if (data.status === 'success') {
                   alert('Data cleared successfully!');
-                  tableBody.innerHTML = ''; // ล้างตาราง
+                  location.reload(); // Reload page to refresh data
                 } else {
                   alert('Failed to clear data.');
                 }
@@ -167,12 +114,19 @@ app.get('/', (req, res) => {
 
 // Endpoint สำหรับล้างข้อมูล
 app.post('/clear', (req, res) => {
-  temperatureData = [];
-  broadcastData({ type: 'clear' }); // แจ้งให้ทุก Client ล้างข้อมูล
+  temperatureData = []; // ล้างข้อมูลทั้งหมด
   res.json({ status: 'success', message: 'Data cleared successfully' });
 });
 
+// หน้าแรกสำหรับตรวจสอบข้อมูล
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>Welcome to ESP8266 Temperature Logger</h1>
+    <p>Use <code>/upload?celsius=VALUE&fahrenheit=VALUE&kelvin=VALUE</code> to send data.</p>
+  `);
+});
+
 // เริ่มเซิร์ฟเวอร์
-server.listen(port, () => {
+app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
