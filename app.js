@@ -24,6 +24,12 @@ app.get('/upload', (req, res) => {
     temperatureData.push(newData);
   }
 
+  // ส่งข้อความยืนยันกลับ ESP8266
+  res.json({ status: 'success', message: 'Data received successfully' });
+});
+
+// หน้าแรกแสดงข้อมูลที่ถูกส่งมา
+app.get('/', (req, res) => {
   // สร้างตาราง HTML
   let tableRows = temperatureData.map((data, index) => `
     <tr>
@@ -75,7 +81,7 @@ app.get('/upload', (req, res) => {
       </style>
     </head>
     <body>
-      <h1>Temperature Data Received</h1>
+      <h1>Temperature Data Logger</h1>
       <table>
         <thead>
           <tr>
@@ -116,14 +122,6 @@ app.get('/upload', (req, res) => {
 app.post('/clear', (req, res) => {
   temperatureData = []; // ล้างข้อมูลทั้งหมด
   res.json({ status: 'success', message: 'Data cleared successfully' });
-});
-
-// หน้าแรกสำหรับตรวจสอบข้อมูล
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>Welcome to ESP8266 Temperature Logger</h1>
-    <p>Use <code>/upload?celsius=VALUE&fahrenheit=VALUE&kelvin=VALUE</code> to send data.</p>
-  `);
 });
 
 // เริ่มเซิร์ฟเวอร์
