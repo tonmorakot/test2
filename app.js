@@ -5,7 +5,7 @@ const port = 3000;
 // ตัวแปรเก็บข้อมูลอุณหภูมิ
 let temperatureData = [];
 
-// Middleware: เพื่อรองรับ JSON และ URL-encoded data
+// Middleware: รองรับ JSON และ URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -14,7 +14,7 @@ app.get('/upload', (req, res) => {
   const { celsius, fahrenheit, kelvin } = req.query;
 
   if (celsius && fahrenheit && kelvin) {
-    // เพิ่มข้อมูลใน temperatureData
+    // เพิ่มข้อมูลใหม่ใน temperatureData
     const newData = {
       celsius,
       fahrenheit,
@@ -24,8 +24,13 @@ app.get('/upload', (req, res) => {
     temperatureData.push(newData);
   }
 
+  res.json({ status: 'success', message: 'Data received successfully' });
+});
+
+// Endpoint แสดงหน้าแสดงผล
+app.get('/', (req, res) => {
   // สร้างตาราง HTML
-  let tableRows = temperatureData.map((data, index) => `
+  const tableRows = temperatureData.map((data, index) => `
     <tr>
       <td>${index + 1}</td>
       <td>${data.celsius} °C</td>
@@ -41,7 +46,7 @@ app.get('/upload', (req, res) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Temperature Data</title>
+      <title>Real-Time Temperature Data</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -73,9 +78,15 @@ app.get('/upload', (req, res) => {
           background-color: #d32f2f;
         }
       </style>
+      <script>
+        // ตั้งให้หน้าเว็บรีเฟรชตัวเองทุก 5 วินาที
+        setInterval(() => {
+          location.reload();
+        }, 5000);
+      </script>
     </head>
     <body>
-      <h1>Temperature Data Received</h1>
+      <h1>Real-Time Temperature Data</h1>
       <table>
         <thead>
           <tr>
@@ -99,7 +110,7 @@ app.get('/upload', (req, res) => {
               .then(data => {
                 if (data.status === 'success') {
                   alert('Data cleared successfully!');
-                  location.reload(); // Reload page to refresh data
+                  location.reload(); // โหลดหน้าใหม่
                 } else {
                   alert('Failed to clear data.');
                 }
@@ -112,18 +123,10 @@ app.get('/upload', (req, res) => {
   `);
 });
 
-// Endpoint สำหรับล้างข้อมูล
+// Endpoint ล้างข้อมูล
 app.post('/clear', (req, res) => {
-  temperatureData = []; // ล้างข้อมูลทั้งหมด
+  temperatureData = []; // ล้างข้อมูลใน temperatureData
   res.json({ status: 'success', message: 'Data cleared successfully' });
-});
-
-// หน้าแรกสำหรับตรวจสอบข้อมูล
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>Welcome to ESP8266 Temperature Logger</h1>
-    <p>Use <code>/upload?celsius=VALUE&fahrenheit=VALUE&kelvin=VALUE</code> to send data.</p>
-  `);
 });
 
 // เริ่มเซิร์ฟเวอร์
